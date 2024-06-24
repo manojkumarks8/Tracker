@@ -25,16 +25,3 @@ npm install chart.js
 npm install express axios body-parser sqlite3
 
 
-This is how the Directory looks
-
-Tracker/
-│
-├── server.js         # Backend server logic
-├── simulateESP32.js  # Simulated data from ESP32
-├── main.js           # Electron main process file
-├── index.html        # HTML file for the frontend
-├── style.css         # CSS file for styling
-├── script.js         # JavaScript file for frontend logic
-├── package.json      # Node.js package configuration file
-├── preload.js        # Node.js package configuration file
-└── node_modules/     # Node.js modules (installed via npm)
