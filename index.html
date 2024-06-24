@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Electron App</title>
+   <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .form-group {
+      margin-bottom: 10px;
+    }
+
+    input[type="email"],
+    input[type="password"],
+    button {
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    button {
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    #dashboard {
+      display: none;
+      background-color: white;
+      padding: 20px;
+      margin-top: 20px;
+      border-radius: 4px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    .sensor-data {
+      margin-top: 20px;
+    }
+
+    .sensor-data p {
+      margin-bottom: 5px;
+    }
+
+    canvas {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="screen-1">
+      <div class="form-group">
+        <input type="email" id="email" placeholder="Email">
+      </div>
+      <div class="form-group">
+        <input type="password" id="password" placeholder="Password">
+      </div>
+      <div class="form-group">
+        <button id="loginButton">Login</button>
+        <button id="registerButton">Register</button>
+      </div>
+    </div>
+
+    <div id="dashboard">
+      <h1>Dashboard</h1>
+      <div class="sensor-data">
+        <p>Real-time Data:</p>
+        <p>Temperature: <span id="temperature">Loading...</span></p>
+        <p>Humidity: <span id="humidity">Loading...</span></p>
+        <p>RSSI: <span id="rssi">Loading...</span></p>
+      </div>
+      <canvas id="chart"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+    const Chart = require('chart.js');
+
+    // Event listeners for login and register buttons
+    document.getElementById('loginButton').addEventListener('click', login);
+    document.getElementById('registerButton').addEventListener('click', register);
+
+    // Listen for sensor data updates from main process
+    ipcRenderer.on('sensorData', (event, data) => {
+      document.getElementById('temperature').innerText = data.temperature + '°C';
+      document.getElementById('humidity').innerText = data.humidity + '%';
+      document.getElementById('rssi').innerText = data.rssi + 'dBm';
+    });
+
+    // Function to handle login
+    async function login() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const isAuthenticated = await ipcRenderer.invoke('login', { email, password });
+        if (isAuthenticated) {
+          document.querySelector('.screen-1').style.display = 'none';
+          document.getElementById('dashboard').style.display = 'block';
+          loadDashboard();
+        } else {
+          alert('Login failed. Please check your credentials.');
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+      }
+    }
+
+    // Function to handle registration
+    async function register() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const isRegistered = await ipcRenderer.invoke('register', { email, password });
+        if (isRegistered) {
+          alert('Registration successful. You can now log in.');
+        } else {
+          alert('Registration failed. Please try again.');
+        }
+      } catch (error) {
+        console.error('Registration error:', error);
+      }
+    }
+
+    // Function to load the dashboard with real-time and historical data
+    async function loadDashboard() {
+      try {
+        const realTimeData = await ipcRenderer.invoke('getRealTimeData');
+        document.getElementById('temperature').innerText = realTimeData.temperature;
+        document.getElementById('humidity').innerText = realTimeData.humidity;
+        document.getElementById('rssi').innerText = realTimeData.rssi;
+
+        const historicalData = await ipcRenderer.invoke('getHistoricalData');
+        renderChart(historicalData);
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      }
+    }
+
+    // Function to render the chart
+    function renderChart(data) {
+      const ctx = document.getElementById('chart').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.labels,
+          datasets: [{
+            label: 'Temperature',
+            data: data.temperature,
+            borderColor: 'rgba(75, 192, 192, 1)',
+            fill: false
+          }, {
+            label: 'Humidity',
+            data: data.humidity,
+            borderColor: 'rgba(153, 102, 255, 1)',
+            fill: false
+          }]
+        },
+        options: {
+          responsive: true,
+          title: {
+            display: true,
+            text: 'Environmental Data'
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>
